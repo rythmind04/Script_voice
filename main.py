@@ -9,7 +9,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 RATE = 44100  # Частота дискретизации
 CHANNELS = 1  # Количество каналов (моно)
 CHUNK = 1024  # Размер блока
-VOLUME_THRESHOLD = 0.03  # Порог уровня громкости (настройте по необходимости)
+VOLUME_THRESHOLD = 0.01  # Порог уровня громкости
 
 print("Запуск прослушивания...")
 
@@ -26,9 +26,10 @@ class AudioStreamThread(QThread):
         """Основной метод работы потока."""
         global last_trigger_time
         try:
-            with sd.InputStream(channels=CHANNELS, samplerate=RATE, blocksize=CHUNK, callback=self.audio_callback):
-                while True:
-                    time.sleep(0.1)  # Задержка, чтобы поток не использовал 100% CPU
+            stream = sd.InputStream(channels=CHANNELS, samplerate=RATE, blocksize=CHUNK, callback=self.audio_callback)
+            stream.start()
+            while True:
+                time.sleep(0.1)
         except Exception as e:
             print(f"Ошибка в аудиопотоке: {e}")
 
@@ -83,7 +84,7 @@ class WarningApp(QApplication):
 
         # Сбрасываем флаг, когда окно закрывается вручную
         msg_box.finished.connect(lambda: self.on_window_closed())
-        msg_box.show()
+        msg_box.exec_()  # Используем exec_() вместо show()
 
     def close_warning(self, msg_box):
         """Закрывает предупреждающее окно."""
@@ -106,6 +107,7 @@ class WarningApp(QApplication):
     def start(self):
         """Запускает аудиопоток и приложение."""
         self.audio_thread.start()  # Запускаем поток захвата аудио
+        self.setQuitOnLastWindowClosed(False) #не дает закрыться когда все окна закрыты
         self.exec_()  # Запускаем цикл событий PyQt
 
 
