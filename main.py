@@ -9,7 +9,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 RATE = 44100  # Частота дискретизации
 CHANNELS = 1  # Количество каналов (моно)
 CHUNK = 1024  # Размер блока
-VOLUME_THRESHOLD = 0.01  # Порог уровня громкости
+VOLUME_THRESHOLD = 0.35 # Порог уровня громкости
 
 print("Запуск прослушивания...")
 
@@ -75,6 +75,7 @@ class WarningApp(QApplication):
 
         msg_box = QMessageBox()
         msg_box.setIcon(QMessageBox.Warning)
+        msg_box.resize()
         msg_box.setWindowTitle("Предупреждение")
         msg_box.setText("Превышен уровень громкости!")
         msg_box.setStandardButtons(QMessageBox.Ok)
