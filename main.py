@@ -2,6 +2,7 @@ import sounddevice as sd
 import numpy as np
 import sys
 import time
+import os
 from PyQt5.QtWidgets import QApplication, QMessageBox
 from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 
@@ -58,6 +59,7 @@ class AudioStreamThread(QThread):
 
 class WarningApp(QApplication):
     """Основное приложение для обработки предупреждений."""
+
     def __init__(self, sys_argv):
         super().__init__(sys_argv)
 
@@ -65,6 +67,7 @@ class WarningApp(QApplication):
         self.audio_thread.show_warning_signal.connect(self.show_warning)
 
         self.is_window_open = False  # Флаг для предотвращения открытия нескольких окон
+        self.warning_count = 0  # Счетчик предупреждений
 
     def show_warning(self):
         """Отображает предупреждающее окно."""
@@ -72,19 +75,28 @@ class WarningApp(QApplication):
             return  # Если окно уже открыто, не открываем новое
 
         self.is_window_open = True  # Устанавливаем флаг, что окно открыто
+        self.warning_count += 1  # Увеличиваем счетчик предупреждений
 
         msg_box = QMessageBox()
+
         msg_box.setIcon(QMessageBox.Warning)
-        msg_box.setWindowTitle("Предупреждение")
-        msg_box.setText("Превышен уровень громкости!")
+        msg_box.setWindowTitle("ВНИМАНИЕ!")
+        msg_box.setText(f"Превышен уровень громкости!\n\nПредупреждение {self.warning_count}/3")
         msg_box.setStandardButtons(QMessageBox.Ok)
 
-        # Закрываем окно автоматически через 3 секунды, если пользователь не закрыл его
+        # Увеличение размеров окна и текста
+        msg_box.setStyleSheet("QLabel{font-size: 18px;} QPushButton{font-size: 16px;}")
+
+        # Закрываем окно автоматически через 3 секунды
         QTimer.singleShot(3000, lambda: self.close_warning(msg_box))
 
         # Сбрасываем флаг, когда окно закрывается вручную
         msg_box.finished.connect(lambda: self.on_window_closed())
-        msg_box.exec_()  # Используем exec_() вместо show()
+        msg_box.exec_()
+
+        # Проверяем, если предупреждений 3 — выходим из системы
+        if self.warning_count >= 3:
+            self.logout_computer()
 
     def close_warning(self, msg_box):
         """Закрывает предупреждающее окно."""
@@ -93,7 +105,7 @@ class WarningApp(QApplication):
         self.is_window_open = False  # Сбрасываем флаг
 
     def on_window_closed(self):
-        """Когда окно закрывается, продолжает захват аудио."""
+        """Когда окно закрывается, продолжаем захват аудио."""
         self.is_window_open = False
         self.restart_audio_capture()
 
@@ -104,10 +116,19 @@ class WarningApp(QApplication):
         self.audio_thread.show_warning_signal.connect(self.show_warning)
         self.audio_thread.start()
 
+    def logout_computer(self):
+        """Выход из системы вместо перезагрузки."""
+        print("Превышено 3 предупреждения. Выход из системы...")
+        if sys.platform == "win32":
+            os.system("shutdown /l")  # Выход из системы в Windows
+        elif sys.platform == "linux" or sys.platform == "darwin":
+            os.system("gnome-session-quit --logout --no-prompt")  # Linux (Gnome)
+            os.system("pkill -KILL -u $USER")  # Альтернативный выход
+
     def start(self):
         """Запускает аудиопоток и приложение."""
         self.audio_thread.start()  # Запускаем поток захвата аудио
-        self.setQuitOnLastWindowClosed(False) #не дает закрыться когда все окна закрыты
+        self.setQuitOnLastWindowClosed(False)  # Не дает закрыться, когда все окна закрыты
         self.exec_()  # Запускаем цикл событий PyQt
 
 
