@@ -10,7 +10,7 @@ from PyQt5.QtCore import QThread, pyqtSignal, QTimer
 RATE = 44100  # Частота дискретизации
 CHANNELS = 1  # Количество каналов (моно)
 CHUNK = 1024  # Размер блока
-VOLUME_THRESHOLD = 0.01  # Порог уровня громкости
+VOLUME_THRESHOLD = 0.35  # Порог уровня громкости
 
 print("Запуск прослушивания...")
 
@@ -95,7 +95,7 @@ class WarningApp(QApplication):
         msg_box.exec_()
 
         # Проверяем, если предупреждений 3 — выходим из системы
-        if self.warning_count >= 3:
+        if self.warning_count >= 4:
             self.logout_computer()
 
     def close_warning(self, msg_box):
