@@ -4,13 +4,13 @@ import sys
 import time
 import os
 from PyQt5.QtWidgets import QApplication, QMessageBox
-from PyQt5.QtCore import QThread, pyqtSignal, QTimer
+from PyQt5.QtCore import QThread, pyqtSignal, QTimer, Qt
 
 # Настройки захвата звука
 RATE = 44100  # Частота дискретизации
 CHANNELS = 1  # Количество каналов (моно)
 CHUNK = 1024  # Размер блока
-VOLUME_THRESHOLD = 0.01  # Порог уровня громкости
+VOLUME_THRESHOLD = 0.04  # Порог уровня громкости
 
 print("Запуск прослушивания...")
 
@@ -56,7 +56,6 @@ class AudioStreamThread(QThread):
                 self.show_warning_signal.emit()  # Передаем сигнал для отображения окна
                 last_trigger_time = current_time  # Обновляем время последнего предупреждения
 
-
 class WarningApp(QApplication):
     """Основное приложение для обработки предупреждений."""
 
@@ -82,17 +81,31 @@ class WarningApp(QApplication):
         msg_box.setIcon(QMessageBox.Warning)
         msg_box.setWindowTitle("ВНИМАНИЕ!")
         msg_box.setText(f"Превышен уровень громкости!\n\nПредупреждение {self.warning_count}/3")
-        msg_box.setStandardButtons(QMessageBox.Ok)
 
         # Увеличение размеров окна и текста
-        msg_box.setStyleSheet("QLabel{font-size: 18px;} QPushButton{font-size: 16px;}")
+        msg_box.setStyleSheet("QLabel{font-size: 36px;} QPushButton{font-size: 20px;}")
 
-        # Закрываем окно автоматически через 3 секунды
+        #Окно открывается всегда поверх остальных окон
+        msg_box.setWindowFlags(Qt.WindowStaysOnTopHint | Qt.Dialog | Qt.WindowModal | Qt.CustomizeWindowHint)
+
+        #Полностью убираем кнопку ОК
+        msg_box.setStandardButtons(msg_box.NoButton)
+
+        # Увеличение размеров окна
+        msg_box.setMinimumWidth(800)
+        msg_box.setMinimumHeight(600)
+
+        screen_geometry = QApplication.primaryScreen().geometry()
+        center_x = screen_geometry.width() // 2 - msg_box.sizeHint().width() // 2
+        top_y = int(screen_geometry.height() * 0.01)
+        msg_box.move(center_x, top_y)
+
+        # Закрываем окно автоматически через 2 секунды
         QTimer.singleShot(3000, lambda: self.close_warning(msg_box))
 
         # Сбрасываем флаг, когда окно закрывается вручную
         msg_box.finished.connect(lambda: self.on_window_closed())
-        msg_box.exec_()
+        msg_box.show()
 
         # Проверяем, если предупреждений 3 — выходим из системы
         if self.warning_count >= 3:
